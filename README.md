@@ -1,28 +1,48 @@
 ﻿# Movie Rental API
-This is a simple Web API designed to manage customer movie rentals.
-Instead of relying on a massive ORM, this project goes old-school and talks directly to an SQL Server database using **raw ADO.NET**. It has a clean separation of concerns (Repositories + Services), transactional safety for multi-item checkouts and handles relational database mapping without the bulk.
 
-## What this API does
-* **Track Customer Rentals:** Fetch a nested list of a customer’s entire rental history (including dates, status and which movies they checked out).
-* **No-ORM Nested Mapping:** Instead of using EF Core, we query flat SQL rows with JOINs and group them in C# into clean, structured DTOs.
-* **Rent Movies (with Rules):** Customers can check out multiple movies at once. The API runs several checks before letting them proceed:
-    * Does the customer exist?
-    * Are the movies actually in our catalog?
-    * **No Double-Renting:** Customers can't rent a movie they already have active on their account!
-* **Safe Transactions:** Creating a rental writes to both `Rental` and `Rental_Item` tables. If anything fails mid-way, the transaction rolls back safely to keep the database consistent.
+A Web API for movie rentals — checkout multiple titles at once, keep the database honest, and map nested rental history without letting EF Core do all the thinking.
 
-## The tech under the hood
-* **C# + .NET 8 (or 9)** with Web API.
-* **Microsoft.Data.SqlClient** (Pure ADO.NET).
-* **SQL Server** for the database.
-* **Swagger** for testing the endpoints.
+This one uses **raw ADO.NET** on purpose. Flat SQL rows come back from JOINs; C# groups them into clean nested DTOs. Repository + Service layers keep things readable.
 
-## Getting started
-1. **Set up your database:** Ensure you have SQL Server running and a database ready.
-2. **Hook up the connection:** Paste your connection string into `appsettings.json`:
+## What it does
+
+- **Customer rental history** — nested response: rentals → items → movies, dates, status
+- **Rent movies (batch)** — one checkout can include several titles
+- **Business checks before write:**
+  - Customer must exist
+  - Every movie must be in the catalog
+  - No renting a movie you already have active on your account
+- **Transactions** — writes to `Rental` and `Rental_Item` together; rolls back if anything breaks mid-checkout
+
+## Tech stack
+
+- **C# / ASP.NET Core Web API**
+- **ADO.NET** (`Microsoft.Data.SqlClient`)
+- **SQL Server**
+- **Swagger** in Development
+
+## API endpoints
+
+| Method | Route | Notes |
+|--------|-------|-------|
+| `GET` | `/api/customers/{id}/rentals` | Full nested rental history |
+| `POST` | `/api/customers/{id}/rentals` | Create rental — body: list of movie IDs |
+
+## Run it locally
+
+1. **Create the database** — run `RentalMovieDB_create.sql` against your SQL Server instance.
+2. **Check the connection string** in `appsettings.json`:
    ```json
    {
      "ConnectionStrings": {
-       "DefaultConnection": "Server=YOUR_SERVER;Database=MovieRentalDB;Trusted_Connection=True;TrustServerCertificate=True;"
+       "DefaultConnection": "Server=YOUR_SERVER;Database=RentalMovieDB;Trusted_Connection=True;TrustServerCertificate=True;"
      }
    }
+   ```
+3. **Run the API:**
+   ```bash
+   dotnet run
+   ```
+4. Open Swagger at **http://localhost:5117/swagger**
+
+> **Note:** The solution/project file is named `Revision` internally — leftover from an earlier iteration. The repo name is the honest one.
